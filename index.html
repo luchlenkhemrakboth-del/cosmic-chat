@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>CosmicChat | Neon Blue Experience</title>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <style>
     :root {
       --bg-dark: #050814;
-      --card-bg: rgba(10, 20, 45, 0.65);
+      --card-bg: rgba(10, 20, 45, 0.75);
       --neon-blue: #00f3ff;
       --neon-glow: rgba(0, 243, 255, 0.4);
       --accent-blue: #0066ff;
@@ -22,20 +21,23 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       background: radial-gradient(circle at center, #0b1536 0%, var(--bg-dark) 100%);
       color: var(--text-main);
       height: 100vh;
+      height: 100dvh; /* Dynamic viewport height for mobile browsers */
+      width: 100vw;
       overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
     }
 
-    /* Cosmic Background Particles Simulation */
+    /* Cosmic Background Star Effect */
     body::before {
       content: '';
       position: absolute;
@@ -52,7 +54,6 @@
       pointer-events: none;
     }
 
-    /* Screen Wrappers */
     .screen {
       position: relative;
       z-index: 1;
@@ -67,28 +68,32 @@
       display: none !important;
     }
 
-    /* --- LOGIN CARD --- */
+    /* --- PAGE 1: LOGIN CARD --- */
     .login-card {
       background: var(--card-bg);
       border: 1px solid var(--border-glow);
       backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       box-shadow: 0 0 35px var(--neon-glow);
       border-radius: 20px;
-      padding: 40px;
-      width: 380px;
+      padding: 35px 25px;
+      width: 90%;
+      max-width: 400px;
       text-align: center;
+      transition: all 0.3s ease;
     }
 
     .login-card h1 {
-      font-size: 2rem;
+      font-size: 1.8rem;
       color: var(--neon-blue);
       text-shadow: 0 0 12px var(--neon-blue);
       margin-bottom: 8px;
+      letter-spacing: 1px;
     }
 
     .login-card p {
       color: var(--text-sub);
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       margin-bottom: 25px;
     }
 
@@ -98,7 +103,7 @@
     }
 
     .input-group label {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--neon-blue);
       display: block;
       margin-bottom: 6px;
@@ -108,24 +113,25 @@
 
     .input-group input {
       width: 100%;
-      padding: 12px 16px;
-      border-radius: 10px;
+      padding: 14px 16px;
+      border-radius: 12px;
       border: 1px solid var(--border-glow);
       background: rgba(5, 12, 30, 0.8);
       color: #fff;
+      font-size: 1rem;
       outline: none;
       transition: all 0.3s ease;
     }
 
     .input-group input:focus {
       border-color: var(--neon-blue);
-      box-shadow: 0 0 10px var(--neon-glow);
+      box-shadow: 0 0 12px var(--neon-glow);
     }
 
     .btn-glow {
       width: 100%;
       padding: 14px;
-      border-radius: 10px;
+      border-radius: 12px;
       border: none;
       background: linear-gradient(135deg, var(--accent-blue), var(--neon-blue));
       color: #000;
@@ -136,35 +142,49 @@
       transition: transform 0.2s, box-shadow 0.2s;
     }
 
-    .btn-glow:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 25px var(--neon-blue);
+    .btn-glow:active {
+      transform: scale(0.98);
     }
 
-    /* --- DASHBOARD LAYOUT --- */
+    /* --- PAGE 2: MAIN DASHBOARD --- */
     .app-container {
-      width: 95vw;
-      height: 90vh;
+      width: 96vw;
+      height: 92vh;
+      height: 92dvh;
       background: var(--card-bg);
       border: 1px solid var(--border-glow);
       backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-radius: 20px;
       display: flex;
       box-shadow: 0 0 40px rgba(0, 243, 255, 0.15);
       overflow: hidden;
+      position: relative;
+    }
+
+    /* Mobile Backdrop Overlay */
+    .sidebar-overlay {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 5;
     }
 
     /* Sidebar */
     .sidebar {
       width: 320px;
-      background: rgba(4, 10, 26, 0.8);
+      background: rgba(4, 10, 26, 0.95);
       border-right: 1px solid var(--border-glow);
       display: flex;
       flex-direction: column;
+      z-index: 6;
+      transition: transform 0.3s ease;
     }
 
     .user-profile {
-      padding: 20px;
+      padding: 18px;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -172,8 +192,8 @@
     }
 
     .avatar {
-      width: 45px;
-      height: 45px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       background: linear-gradient(45deg, var(--accent-blue), var(--neon-blue));
       display: flex;
@@ -182,28 +202,42 @@
       font-weight: bold;
       color: #000;
       box-shadow: 0 0 10px var(--neon-glow);
+      flex-shrink: 0;
+    }
+
+    .user-info {
+      overflow: hidden;
+    }
+
+    .user-info h4 {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #fff;
     }
 
     .action-bar {
-      padding: 15px;
+      padding: 12px;
       display: flex;
       gap: 8px;
     }
 
     .btn-secondary {
       flex: 1;
-      padding: 8px 12px;
-      border-radius: 8px;
+      padding: 10px 8px;
+      border-radius: 10px;
       border: 1px solid var(--border-glow);
-      background: rgba(0, 243, 255, 0.05);
+      background: rgba(0, 243, 255, 0.08);
       color: var(--neon-blue);
-      font-size: 0.85rem;
+      font-size: 0.82rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: 0.3s;
+      transition: all 0.2s;
+      white-space: nowrap;
     }
 
-    .btn-secondary:hover {
-      background: rgba(0, 243, 255, 0.2);
+    .btn-secondary:active {
+      background: rgba(0, 243, 255, 0.25);
     }
 
     .chat-list {
@@ -214,19 +248,21 @@
 
     .chat-item {
       padding: 12px;
-      border-radius: 10px;
+      border-radius: 12px;
       margin-bottom: 8px;
       cursor: pointer;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid transparent;
       transition: 0.2s;
     }
 
     .chat-item:hover, .chat-item.active {
       background: rgba(0, 243, 255, 0.15);
-      border-left: 3px solid var(--neon-blue);
+      border-color: var(--border-glow);
+      border-left: 4px solid var(--neon-blue);
     }
 
     /* Main Chat Window */
@@ -235,42 +271,68 @@
       display: flex;
       flex-direction: column;
       position: relative;
+      height: 100%;
+      min-width: 0;
     }
 
     .chat-header {
-      padding: 18px 25px;
+      padding: 15px 20px;
       border-bottom: 1px solid var(--border-glow);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: rgba(5, 12, 30, 0.5);
+      background: rgba(5, 12, 30, 0.6);
+      gap: 10px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .menu-toggle {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--border-glow);
+      color: var(--neon-blue);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 1.2rem;
+      cursor: pointer;
     }
 
     .chat-header h3 {
       color: var(--neon-blue);
       text-shadow: 0 0 8px var(--neon-glow);
+      font-size: 1.1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .messages-area {
       flex: 1;
-      padding: 20px;
+      padding: 16px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 12px;
+      scroll-behavior: smooth;
     }
 
     .msg {
-      max-width: 60%;
-      padding: 12px 16px;
+      max-width: 75%;
+      padding: 10px 14px;
       border-radius: 14px;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       line-height: 1.4;
-      position: relative;
+      word-break: break-word;
     }
 
     .msg.incoming {
-      background: rgba(15, 30, 60, 0.8);
+      background: rgba(15, 30, 60, 0.85);
       border: 1px solid rgba(0, 243, 255, 0.2);
       align-self: flex-start;
       border-bottom-left-radius: 2px;
@@ -285,10 +347,11 @@
     }
 
     .msg .sender {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--neon-blue);
       margin-bottom: 4px;
       display: block;
+      font-weight: 600;
     }
 
     .msg img {
@@ -296,72 +359,79 @@
       border-radius: 8px;
       margin-top: 6px;
       border: 1px solid var(--border-glow);
+      display: block;
     }
 
     /* Input Footer */
     .chat-input-area {
-      padding: 15px 25px;
+      padding: 12px 16px;
       border-top: 1px solid var(--border-glow);
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: rgba(5, 12, 30, 0.8);
+      gap: 10px;
+      background: rgba(5, 12, 30, 0.95);
     }
 
     .file-btn {
       color: var(--neon-blue);
       cursor: pointer;
-      font-size: 1.2rem;
-      padding: 8px;
-      transition: 0.2s;
-    }
-
-    .file-btn:hover {
-      color: #fff;
-      text-shadow: 0 0 8px var(--neon-blue);
+      font-size: 1.3rem;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .chat-input-area input[type="text"] {
       flex: 1;
-      padding: 12px 18px;
+      padding: 12px 16px;
       border-radius: 25px;
       border: 1px solid var(--border-glow);
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.5);
       color: #fff;
+      font-size: 0.95rem;
       outline: none;
+      min-width: 0;
+    }
+
+    .chat-input-area input[type="text"]:focus {
+      border-color: var(--neon-blue);
     }
 
     .btn-send {
-      padding: 10px 20px;
+      padding: 10px 18px;
       border-radius: 20px;
       border: none;
       background: var(--neon-blue);
       color: #000;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 0 12px var(--neon-glow);
+      box-shadow: 0 0 10px var(--neon-glow);
+      font-size: 0.9rem;
+      flex-shrink: 0;
     }
 
-    /* Video Overlay Window */
+    /* Video Overlay Modal */
     .video-modal {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(2, 6, 18, 0.95);
+      background: rgba(2, 6, 18, 0.96);
       z-index: 10;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 15px;
     }
 
     .video-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      gap: 15px;
       width: 100%;
       max-width: 900px;
-      height: 70%;
+      flex: 1;
+      max-height: 80%;
     }
 
     .video-frame {
@@ -371,6 +441,9 @@
       overflow: hidden;
       position: relative;
       box-shadow: 0 0 20px var(--neon-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .video-frame video {
@@ -380,19 +453,19 @@
     }
 
     .video-controls {
-      margin-top: 25px;
+      margin-top: 15px;
       display: flex;
       gap: 20px;
     }
 
     .btn-call-action {
-      width: 50px;
-      height: 50px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
       border: none;
       background: rgba(255, 255, 255, 0.1);
       color: #fff;
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -403,6 +476,76 @@
     .btn-call-action.end {
       background: #ff3366;
       box-shadow: 0 0 15px rgba(255, 51, 102, 0.5);
+    }
+
+    /* --- RESPONSIVE MEDIA QUERIES FOR PHONES & TABLETS --- */
+    @media (max-width: 768px) {
+      .app-container {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        border-radius: 0;
+        border: none;
+      }
+
+      .menu-toggle {
+        display: block;
+      }
+
+      .sidebar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 280px;
+        transform: translateX(-100%);
+        box-shadow: 5px 0 25px rgba(0, 0, 0, 0.8);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      .msg {
+        max-width: 88%;
+      }
+
+      .video-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+
+      .chat-header {
+        padding: 12px 15px;
+      }
+
+      .chat-input-area {
+        padding: 10px 12px;
+      }
+
+      .btn-secondary {
+        font-size: 0.78rem;
+        padding: 8px 6px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 25px 18px;
+      }
+
+      .login-card h1 {
+        font-size: 1.5rem;
+      }
+
+      .btn-send {
+        padding: 10px 14px;
+        font-size: 0.85rem;
+      }
     }
   </style>
 </head>
@@ -427,11 +570,14 @@
   <div id="app-screen" class="screen hidden">
     <div class="app-container">
       
+      <!-- Mobile Sidebar Dark Overlay -->
+      <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
       <!-- Sidebar -->
-      <div class="sidebar">
+      <div class="sidebar" id="sidebar">
         <div class="user-profile">
           <div class="avatar" id="user-avatar">U</div>
-          <div>
+          <div class="user-info">
             <h4 id="user-display-name">Username</h4>
             <span style="font-size:0.75rem; color:var(--neon-blue);">● Online</span>
           </div>
@@ -439,7 +585,7 @@
 
         <div class="action-bar">
           <button class="btn-secondary" onclick="joinGlobal()">Global Feed</button>
-          <button class="btn-secondary" onclick="createPrivateRoom()">+ Private Room</button>
+          <button class="btn-secondary" onclick="createPrivateRoom()">+ Room</button>
         </div>
 
         <div class="chat-list" id="chat-list">
@@ -453,8 +599,11 @@
       <!-- Main Window -->
       <div class="main-chat">
         <div class="chat-header">
-          <h3 id="current-chat-title">🌐 Global Server</h3>
-          <button class="btn-secondary" onclick="startVideoCall()">📹 Video Call</button>
+          <div class="header-left">
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+            <h3 id="current-chat-title">🌐 Global Server</h3>
+          </div>
+          <button class="btn-secondary" onclick="startVideoCall()" style="flex: initial;">📹 Call</button>
         </div>
 
         <div class="messages-area" id="messages-area">
@@ -489,8 +638,7 @@
   </div>
 
   <script>
-    // Frontend Engine Logic
-    const socket = io(); // Connects to Node.js backend
+    const socket = io();
     let currentUser = "";
     let activeRoom = "Global Server";
     let localStream = null;
@@ -506,15 +654,26 @@
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('app-screen').classList.remove('hidden');
 
-      // Register user with backend
       socket.emit('user-joined', username);
+    }
+
+    /* Mobile Sidebar Controls */
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebar-overlay').classList.toggle('active');
+    }
+
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('active');
     }
 
     function switchChat(roomName) {
       activeRoom = roomName;
       document.getElementById('current-chat-title').innerText = roomName;
-      document.getElementById('messages-area').innerHTML = ''; // Clear viewport
+      document.getElementById('messages-area').innerHTML = '';
       socket.emit('join-room', roomName);
+      closeSidebar();
     }
 
     function createPrivateRoom() {
@@ -591,14 +750,20 @@
       area.scrollTop = area.scrollHeight;
     }
 
-    // Socket Event Listeners
     socket.on('receive-message', (data) => {
       if (data.sender !== currentUser && data.room === activeRoom) {
         renderMessage(data, false);
       }
     });
 
-    // WebRTC Video Call logic
+    socket.on('load-global-history', (history) => {
+      if (activeRoom === 'Global Server') {
+        history.forEach(msg => {
+          renderMessage(msg, msg.sender === currentUser);
+        });
+      }
+    });
+
     async function startVideoCall() {
       document.getElementById('video-modal').classList.remove('hidden');
       try {
@@ -614,6 +779,7 @@
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
       }
+      document.getElementById('video-modal').classList.hidden = true;
       document.getElementById('video-modal').classList.add('hidden');
     }
   </script>
