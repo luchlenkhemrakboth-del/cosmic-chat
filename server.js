@@ -9,17 +9,17 @@ const io = new Server(server, {
   maxHttpBufferSize: 1e7 // Supports images up to 10MB
 });
 
-// Serve static files directly from root directory
 app.use(express.static(__dirname));
 
-// Serve index.html on root access
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// In-memory data store
-const globalMessageStore = [];
-const activeUsers = new Map(); // Tracks socket.id -> username
+// Storage for messages grouped by room
+const messageStores = {
+  'Global Server': []
+};
+const activeUsers = new Map();
 
 function broadcastOnlineUsers() {
   const count = activeUsers.size;
@@ -30,47 +30,63 @@ function broadcastOnlineUsers() {
 io.on('connection', (socket) => {
   console.log('⚡ User connected:', socket.id);
 
-  // Auto-join Global Server upon socket connection
-  socket.join('Global Server');
-
-  // Handle user login
+  // User initial login
   socket.on('user-joined', (data) => {
     const username = typeof data === 'object' ? data.username : data;
+    const room = (typeof data === 'object' && data.room) ? data.room : 'Global Server';
+
     socket.username = username;
+    socket.currentRoom = room;
+
     activeUsers.set(socket.id, username);
+    socket.join(room);
 
-    // Send chat history to user
-    socket.emit('load-global-history', globalMessageStore);
+    // Send history for the current room
+    const history = messageStores[room] || [];
+    socket.emit('load-room-history', { room, history });
 
-    // Broadcast updated online user count
     broadcastOnlineUsers();
   });
 
-  // Handle joining specific rooms
+  // Handle switching rooms explicitly
   socket.on('join-room', (roomName) => {
-    socket.join(roomName);
-    if (roomName === 'Global Server') {
-      socket.emit('load-global-history', globalMessageStore);
+    if (socket.currentRoom) {
+      socket.leave(socket.currentRoom);
     }
+
+    socket.currentRoom = roomName;
+    socket.join(roomName);
+
+    if (!messageStores[roomName]) {
+      messageStores[roomName] = [];
+    }
+
+    // Send saved history for this room to the joining user
+    socket.emit('load-room-history', {
+      room: roomName,
+      history: messageStores[roomName]
+    });
   });
 
-  // Handle message broadcasting across all devices
+  // Handle sending messages (Broadcasts to EVERYONE in room, including sender confirmation if needed)
   socket.on('send-message', (data) => {
     const targetRoom = data.room || 'Global Server';
-    
-    // Ensure socket is joined to room
-    socket.join(targetRoom);
 
-    if (targetRoom === 'Global Server') {
-      globalMessageStore.push(data);
-      if (globalMessageStore.length > 200) globalMessageStore.shift(); // Keep last 200 messages
+    if (!messageStores[targetRoom]) {
+      messageStores[targetRoom] = [];
     }
-    
-    // Broadcast message to everyone else in the room
-    socket.to(targetRoom).emit('receive-message', data);
+
+    // Save message history
+    messageStores[targetRoom].push(data);
+    if (messageStores[targetRoom].length > 200) {
+      messageStores[targetRoom].shift();
+    }
+
+    // Broadcast message to EVERYONE connected in targetRoom (including sender for sync)
+    io.to(targetRoom).emit('receive-message', data);
   });
 
-  // WebRTC Video Calling Signaling
+  // WebRTC Signaling
   socket.on('call-user', (data) => {
     io.to(data.userToCall).emit('call-incoming', { signal: data.signalData, from: data.from });
   });
@@ -79,9 +95,7 @@ io.on('connection', (socket) => {
     io.to(data.to).emit('call-accepted', data.signal);
   });
 
-  // Handle disconnection
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
     activeUsers.delete(socket.id);
     broadcastOnlineUsers();
   });
