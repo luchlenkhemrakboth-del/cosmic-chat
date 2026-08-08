@@ -15,6 +15,7 @@
       --text-main: #e0f7fc;
       --text-sub: #7a9bb8;
       --border-glow: rgba(0, 243, 255, 0.25);
+      --online-green: #00ff88;
     }
 
     * {
@@ -29,7 +30,7 @@
       background: radial-gradient(circle at center, #0b1536 0%, var(--bg-dark) 100%);
       color: var(--text-main);
       height: 100vh;
-      height: 100dvh; /* Dynamic viewport height for mobile browsers */
+      height: 100dvh;
       width: 100vw;
       overflow: hidden;
       display: flex;
@@ -162,7 +163,7 @@
       position: relative;
     }
 
-    /* Mobile Backdrop Overlay */
+    /* Mobile Sidebar Dark Overlay */
     .sidebar-overlay {
       display: none;
       position: absolute;
@@ -214,6 +215,23 @@
       overflow: hidden;
       text-overflow: ellipsis;
       color: #fff;
+    }
+
+    .online-badge {
+      font-size: 0.75rem;
+      color: var(--online-green);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .online-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--online-green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--online-green);
     }
 
     .action-bar {
@@ -301,6 +319,12 @@
       padding: 6px 10px;
       font-size: 1.2rem;
       cursor: pointer;
+    }
+
+    .header-titles {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
     }
 
     .chat-header h3 {
@@ -478,7 +502,7 @@
       box-shadow: 0 0 15px rgba(255, 51, 102, 0.5);
     }
 
-    /* --- RESPONSIVE MEDIA QUERIES FOR PHONES & TABLETS --- */
+    /* Responsive adjustments */
     @media (max-width: 768px) {
       .app-container {
         width: 100vw;
@@ -579,7 +603,10 @@
           <div class="avatar" id="user-avatar">U</div>
           <div class="user-info">
             <h4 id="user-display-name">Username</h4>
-            <span style="font-size:0.75rem; color:var(--neon-blue);">● Online</span>
+            <div class="online-badge">
+              <span class="online-dot"></span>
+              <span id="sidebar-online-status">Online</span>
+            </div>
           </div>
         </div>
 
@@ -601,7 +628,13 @@
         <div class="chat-header">
           <div class="header-left">
             <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-            <h3 id="current-chat-title">🌐 Global Server</h3>
+            <div class="header-titles">
+              <h3 id="current-chat-title">🌐 Global Server</h3>
+              <div class="online-badge">
+                <span class="online-dot"></span>
+                <span id="header-online-count">1 Online</span>
+              </div>
+            </div>
           </div>
           <button class="btn-secondary" onclick="startVideoCall()" style="flex: initial;">📹 Call</button>
         </div>
@@ -654,7 +687,8 @@
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('app-screen').classList.remove('hidden');
 
-      socket.emit('user-joined', username);
+      // Join Global Server and notify backend of user
+      socket.emit('user-joined', { username: currentUser, room: activeRoom });
     }
 
     /* Mobile Sidebar Controls */
@@ -750,6 +784,7 @@
       area.scrollTop = area.scrollHeight;
     }
 
+    /* Socket Listeners */
     socket.on('receive-message', (data) => {
       if (data.sender !== currentUser && data.room === activeRoom) {
         renderMessage(data, false);
@@ -757,11 +792,17 @@
     });
 
     socket.on('load-global-history', (history) => {
-      if (activeRoom === 'Global Server') {
-        history.forEach(msg => {
-          renderMessage(msg, msg.sender === currentUser);
-        });
-      }
+      document.getElementById('messages-area').innerHTML = '';
+      history.forEach(msg => {
+        renderMessage(msg, msg.sender === currentUser);
+      });
+    });
+
+    /* Live Online Users Counter */
+    socket.on('online-users', (data) => {
+      const count = data.count || 1;
+      document.getElementById('header-online-count').innerText = `${count} Online`;
+      document.getElementById('sidebar-online-status').innerText = `${count} Online`;
     });
 
     async function startVideoCall() {
@@ -779,7 +820,6 @@
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
       }
-      document.getElementById('video-modal').classList.hidden = true;
       document.getElementById('video-modal').classList.add('hidden');
     }
   </script>
