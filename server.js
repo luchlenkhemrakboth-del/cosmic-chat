@@ -6,19 +6,19 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  maxHttpBufferSize: 1e7 // Allows image transfers up to 10MB
+  maxHttpBufferSize: 1e7 // Supports image transfers up to 10MB
 });
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Global Server Message Memory (Saves messages in global memory)
+// Global Server Message Memory (Saves messages in memory)
 const globalMessageStore = [];
 
 io.on('connection', (socket) => {
   console.log('⚡ User connected:', socket.id);
 
-  // Send historical global messages to newly joined user
+  // Send historical global messages to newly connected user
   socket.emit('load-global-history', globalMessageStore);
 
   // Handle joining rooms
@@ -30,8 +30,7 @@ io.on('connection', (socket) => {
   socket.on('send-message', (data) => {
     if (data.room === 'Global Server') {
       globalMessageStore.push(data); // Save in global memory
-      // Keep memory light (limit to last 200 messages)
-      if (globalMessageStore.length > 200) globalMessageStore.shift();
+      if (globalMessageStore.length > 200) globalMessageStore.shift(); // Keep last 200
     }
     
     // Broadcast to others in the room
