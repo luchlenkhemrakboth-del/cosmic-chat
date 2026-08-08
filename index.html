@@ -502,7 +502,7 @@
       box-shadow: 0 0 15px rgba(255, 51, 102, 0.5);
     }
 
-    /* Responsive adjustments */
+    /* Mobile view adaptations */
     @media (max-width: 768px) {
       .app-container {
         width: 100vw;
@@ -687,11 +687,9 @@
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('app-screen').classList.remove('hidden');
 
-      // Join Global Server and notify backend of user
       socket.emit('user-joined', { username: currentUser, room: activeRoom });
     }
 
-    /* Mobile Sidebar Controls */
     function toggleSidebar() {
       document.getElementById('sidebar').classList.toggle('open');
       document.getElementById('sidebar-overlay').classList.toggle('active');
@@ -784,7 +782,6 @@
       area.scrollTop = area.scrollHeight;
     }
 
-    /* Socket Listeners */
     socket.on('receive-message', (data) => {
       if (data.sender !== currentUser && data.room === activeRoom) {
         renderMessage(data, false);
@@ -798,7 +795,6 @@
       });
     });
 
-    /* Live Online Users Counter */
     socket.on('online-users', (data) => {
       const count = data.count || 1;
       document.getElementById('header-online-count').innerText = `${count} Online`;
