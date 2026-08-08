@@ -1,676 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>CosmicChat | Neon Blue Experience</title>
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <style>
-    :root {
-      --bg-dark: #050814;
-      --card-bg: rgba(10, 20, 45, 0.75);
-      --neon-blue: #00f3ff;
-      --neon-glow: rgba(0, 243, 255, 0.4);
-      --accent-blue: #0066ff;
-      --text-main: #e0f7fc;
-      --text-sub: #7a9bb8;
-      --border-glow: rgba(0, 243, 255, 0.25);
-      --online-green: #00ff88;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    body {
-      background: radial-gradient(circle at center, #0b1536 0%, var(--bg-dark) 100%);
-      color: var(--text-main);
-      height: 100vh;
-      height: 100dvh;
-      width: 100vw;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    /* Cosmic Background Star Effect */
-    body::before {
-      content: '';
-      position: absolute;
-      width: 200%;
-      height: 200%;
-      background-image: 
-        radial-gradient(2px 2px at 20px 30px, #ffffff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 40px 70px, var(--neon-blue), rgba(0,0,0,0)),
-        radial-gradient(1px 1px at 90px 40px, #ffffff, rgba(0,0,0,0));
-      background-repeat: repeat;
-      background-size: 200px 200px;
-      opacity: 0.3;
-      z-index: 0;
-      pointer-events: none;
-    }
-
-    .screen {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* --- PAGE 1: LOGIN CARD --- */
-    .login-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border-glow);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 0 35px var(--neon-glow);
-      border-radius: 20px;
-      padding: 35px 25px;
-      width: 90%;
-      max-width: 400px;
-      text-align: center;
-      transition: all 0.3s ease;
-    }
-
-    .login-card h1 {
-      font-size: 1.8rem;
-      color: var(--neon-blue);
-      text-shadow: 0 0 12px var(--neon-blue);
-      margin-bottom: 8px;
-      letter-spacing: 1px;
-    }
-
-    .login-card p {
-      color: var(--text-sub);
-      font-size: 0.88rem;
-      margin-bottom: 25px;
-    }
-
-    .input-group {
-      margin-bottom: 20px;
-      text-align: left;
-    }
-
-    .input-group label {
-      font-size: 0.75rem;
-      color: var(--neon-blue);
-      display: block;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .input-group input {
-      width: 100%;
-      padding: 14px 16px;
-      border-radius: 12px;
-      border: 1px solid var(--border-glow);
-      background: rgba(5, 12, 30, 0.8);
-      color: #fff;
-      font-size: 1rem;
-      outline: none;
-      transition: all 0.3s ease;
-    }
-
-    .input-group input:focus {
-      border-color: var(--neon-blue);
-      box-shadow: 0 0 12px var(--neon-glow);
-    }
-
-    .btn-glow {
-      width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      border: none;
-      background: linear-gradient(135deg, var(--accent-blue), var(--neon-blue));
-      color: #000;
-      font-weight: bold;
-      font-size: 1rem;
-      cursor: pointer;
-      box-shadow: 0 0 15px var(--neon-glow);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .btn-glow:active {
-      transform: scale(0.98);
-    }
-
-    /* --- PAGE 2: MAIN DASHBOARD --- */
-    .app-container {
-      width: 96vw;
-      height: 92vh;
-      height: 92dvh;
-      background: var(--card-bg);
-      border: 1px solid var(--border-glow);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 20px;
-      display: flex;
-      box-shadow: 0 0 40px rgba(0, 243, 255, 0.15);
-      overflow: hidden;
-      position: relative;
-    }
-
-    /* Mobile Sidebar Dark Overlay */
-    .sidebar-overlay {
-      display: none;
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(4px);
-      z-index: 5;
-    }
-
-    /* Sidebar */
-    .sidebar {
-      width: 320px;
-      background: rgba(4, 10, 26, 0.95);
-      border-right: 1px solid var(--border-glow);
-      display: flex;
-      flex-direction: column;
-      z-index: 6;
-      transition: transform 0.3s ease;
-    }
-
-    .user-profile {
-      padding: 18px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid var(--border-glow);
-    }
-
-    .avatar {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      background: linear-gradient(45deg, var(--accent-blue), var(--neon-blue));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      color: #000;
-      box-shadow: 0 0 10px var(--neon-glow);
-      flex-shrink: 0;
-    }
-
-    .user-info {
-      overflow: hidden;
-    }
-
-    .user-info h4 {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: #fff;
-    }
-
-    .online-badge {
-      font-size: 0.75rem;
-      color: var(--online-green);
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .online-dot {
-      width: 8px;
-      height: 8px;
-      background-color: var(--online-green);
-      border-radius: 50%;
-      box-shadow: 0 0 8px var(--online-green);
-    }
-
-    .action-bar {
-      padding: 12px;
-      display: flex;
-      gap: 8px;
-    }
-
-    .btn-secondary {
-      flex: 1;
-      padding: 10px 8px;
-      border-radius: 10px;
-      border: 1px solid var(--border-glow);
-      background: rgba(0, 243, 255, 0.08);
-      color: var(--neon-blue);
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-
-    .btn-secondary:active {
-      background: rgba(0, 243, 255, 0.25);
-    }
-
-    .chat-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-    }
-
-    .chat-item {
-      padding: 12px;
-      border-radius: 12px;
-      margin-bottom: 8px;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid transparent;
-      transition: 0.2s;
-    }
-
-    .chat-item:hover, .chat-item.active {
-      background: rgba(0, 243, 255, 0.15);
-      border-color: var(--border-glow);
-      border-left: 4px solid var(--neon-blue);
-    }
-
-    /* Main Chat Window */
-    .main-chat {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      height: 100%;
-      min-width: 0;
-    }
-
-    .chat-header {
-      padding: 15px 20px;
-      border-bottom: 1px solid var(--border-glow);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(5, 12, 30, 0.6);
-      gap: 10px;
-    }
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 0;
-    }
-
-    .menu-toggle {
-      display: none;
-      background: transparent;
-      border: 1px solid var(--border-glow);
-      color: var(--neon-blue);
-      border-radius: 8px;
-      padding: 6px 10px;
-      font-size: 1.2rem;
-      cursor: pointer;
-    }
-
-    .header-titles {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-    }
-
-    .chat-header h3 {
-      color: var(--neon-blue);
-      text-shadow: 0 0 8px var(--neon-glow);
-      font-size: 1.1rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .messages-area {
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      scroll-behavior: smooth;
-    }
-
-    .msg {
-      max-width: 75%;
-      padding: 10px 14px;
-      border-radius: 14px;
-      font-size: 0.92rem;
-      line-height: 1.4;
-      word-break: break-word;
-    }
-
-    .msg.incoming {
-      background: rgba(15, 30, 60, 0.85);
-      border: 1px solid rgba(0, 243, 255, 0.2);
-      align-self: flex-start;
-      border-bottom-left-radius: 2px;
-    }
-
-    .msg.outgoing {
-      background: linear-gradient(135deg, #0052cc, #00a3cc);
-      color: #fff;
-      align-self: flex-end;
-      border-bottom-right-radius: 2px;
-      box-shadow: 0 0 10px rgba(0, 163, 204, 0.3);
-    }
-
-    .msg .sender {
-      font-size: 0.72rem;
-      color: var(--neon-blue);
-      margin-bottom: 4px;
-      display: block;
-      font-weight: 600;
-    }
-
-    .msg img {
-      max-width: 100%;
-      border-radius: 8px;
-      margin-top: 6px;
-      border: 1px solid var(--border-glow);
-      display: block;
-    }
-
-    /* Input Footer */
-    .chat-input-area {
-      padding: 12px 16px;
-      border-top: 1px solid var(--border-glow);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(5, 12, 30, 0.95);
-    }
-
-    .file-btn {
-      color: var(--neon-blue);
-      cursor: pointer;
-      font-size: 1.3rem;
-      padding: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .chat-input-area input[type="text"] {
-      flex: 1;
-      padding: 12px 16px;
-      border-radius: 25px;
-      border: 1px solid var(--border-glow);
-      background: rgba(0, 0, 0, 0.5);
-      color: #fff;
-      font-size: 0.95rem;
-      outline: none;
-      min-width: 0;
-    }
-
-    .chat-input-area input[type="text"]:focus {
-      border-color: var(--neon-blue);
-    }
-
-    .btn-send {
-      padding: 10px 18px;
-      border-radius: 20px;
-      border: none;
-      background: var(--neon-blue);
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 0 10px var(--neon-glow);
-      font-size: 0.9rem;
-      flex-shrink: 0;
-    }
-
-    /* Video Overlay Modal */
-    .video-modal {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(2, 6, 18, 0.96);
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 15px;
-    }
-
-    .video-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      width: 100%;
-      max-width: 900px;
-      flex: 1;
-      max-height: 80%;
-    }
-
-    .video-frame {
-      background: #000;
-      border: 2px solid var(--neon-blue);
-      border-radius: 15px;
-      overflow: hidden;
-      position: relative;
-      box-shadow: 0 0 20px var(--neon-glow);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .video-frame video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .video-controls {
-      margin-top: 15px;
-      display: flex;
-      gap: 20px;
-    }
-
-    .btn-call-action {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
-      font-size: 1.3rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid var(--border-glow);
-    }
-
-    .btn-call-action.end {
-      background: #ff3366;
-      box-shadow: 0 0 15px rgba(255, 51, 102, 0.5);
-    }
-
-    /* Mobile view adaptations */
-    @media (max-width: 768px) {
-      .app-container {
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-        border-radius: 0;
-        border: none;
-      }
-
-      .menu-toggle {
-        display: block;
-      }
-
-      .sidebar {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 280px;
-        transform: translateX(-100%);
-        box-shadow: 5px 0 25px rgba(0, 0, 0, 0.8);
-      }
-
-      .sidebar.open {
-        transform: translateX(0);
-      }
-
-      .sidebar-overlay.active {
-        display: block;
-      }
-
-      .msg {
-        max-width: 88%;
-      }
-
-      .video-grid {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
-      }
-
-      .chat-header {
-        padding: 12px 15px;
-      }
-
-      .chat-input-area {
-        padding: 10px 12px;
-      }
-
-      .btn-secondary {
-        font-size: 0.78rem;
-        padding: 8px 6px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .login-card {
-        padding: 25px 18px;
-      }
-
-      .login-card h1 {
-        font-size: 1.5rem;
-      }
-
-      .btn-send {
-        padding: 10px 14px;
-        font-size: 0.85rem;
-      }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- PAGE 1: LOGIN -->
-  <div id="login-screen" class="screen">
-    <div class="login-card">
-      <h1>COSMIC CHAT</h1>
-      <p>Connect across the global neon network</p>
-      
-      <div class="input-group">
-        <label>Your Handle</label>
-        <input type="text" id="username-input" placeholder="e.g., Starlight_404" />
-      </div>
-
-      <button class="btn-glow" onclick="joinNetwork()">ENTER NETWORK</button>
-    </div>
-  </div>
-
-  <!-- PAGE 2: MAIN CHAT DASHBOARD -->
-  <div id="app-screen" class="screen hidden">
-    <div class="app-container">
-      
-      <!-- Mobile Sidebar Dark Overlay -->
-      <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-
-      <!-- Sidebar -->
-      <div class="sidebar" id="sidebar">
-        <div class="user-profile">
-          <div class="avatar" id="user-avatar">U</div>
-          <div class="user-info">
-            <h4 id="user-display-name">Username</h4>
-            <div class="online-badge">
-              <span class="online-dot"></span>
-              <span id="sidebar-online-status">Online</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="action-bar">
-          <button class="btn-secondary" onclick="joinGlobal()">Global Feed</button>
-          <button class="btn-secondary" onclick="createPrivateRoom()">+ Room</button>
-        </div>
-
-        <div class="chat-list" id="chat-list">
-          <div class="chat-item active" onclick="switchChat('Global Server')">
-            <span>🌐 Global Server</span>
-            <small style="color:var(--text-sub)">Public</small>
-          </div>
-        </div>
-      </div>
-
-      <!-- Main Window -->
-      <div class="main-chat">
-        <div class="chat-header">
-          <div class="header-left">
-            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-            <div class="header-titles">
-              <h3 id="current-chat-title">🌐 Global Server</h3>
-              <div class="online-badge">
-                <span class="online-dot"></span>
-                <span id="header-online-count">1 Online</span>
-              </div>
-            </div>
-          </div>
-          <button class="btn-secondary" onclick="startVideoCall()" style="flex: initial;">📹 Call</button>
-        </div>
-
-        <div class="messages-area" id="messages-area">
-          <!-- Messages dynamically render here -->
-        </div>
-
-        <div class="chat-input-area">
-          <label class="file-btn" title="Send Image">
-            📷 <input type="file" id="image-input" accept="image/*" style="display:none;" onchange="sendImage(event)"/>
-          </label>
-          <input type="text" id="message-input" placeholder="Transmit message..." onkeypress="handleKeyPress(event)"/>
-          <button class="btn-send" onclick="sendMessage()">Send</button>
-        </div>
-
-        <!-- Video Overlay Modal -->
-        <div id="video-modal" class="video-modal hidden">
-          <div class="video-grid">
-            <div class="video-frame">
-              <video id="local-video" autoplay playsinline muted></video>
-            </div>
-            <div class="video-frame">
-              <video id="remote-video" autoplay playsinline></video>
-            </div>
-          </div>
-          <div class="video-controls">
-            <button class="btn-call-action end" onclick="endVideoCall()">📵</button>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <script>
+<script>
     const socket = io();
     let currentUser = "";
     let activeRoom = "Global Server";
@@ -704,6 +32,13 @@
       activeRoom = roomName;
       document.getElementById('current-chat-title').innerText = roomName;
       document.getElementById('messages-area').innerHTML = '';
+
+      // Highlight active room item
+      document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+      const activeEl = Array.from(document.querySelectorAll('.chat-item')).find(el => el.innerText.includes(roomName));
+      if (activeEl) activeEl.classList.add('active');
+
+      // Tell backend to join new room room socket
       socket.emit('join-room', roomName);
       closeSidebar();
     }
@@ -712,14 +47,20 @@
       const roomCode = prompt("Enter a Private Room Code or Name:");
       if (!roomCode) return;
 
+      const fullRoomName = `Room: ${roomCode}`;
       const chatList = document.getElementById('chat-list');
-      const roomItem = document.createElement('div');
-      roomItem.className = 'chat-item';
-      roomItem.onclick = () => switchChat(`Room: ${roomCode}`);
-      roomItem.innerHTML = `<span>🔒 Room: ${roomCode}</span><small style="color:var(--text-sub)">Private</small>`;
-      chatList.appendChild(roomItem);
 
-      switchChat(`Room: ${roomCode}`);
+      // Avoid creating duplicates in UI list
+      const existing = Array.from(chatList.children).find(item => item.innerText.includes(fullRoomName));
+      if (!existing) {
+        const roomItem = document.createElement('div');
+        roomItem.className = 'chat-item';
+        roomItem.onclick = () => switchChat(fullRoomName);
+        roomItem.innerHTML = `<span>🔒 ${fullRoomName}</span><small style="color:var(--text-sub)">Private</small>`;
+        chatList.appendChild(roomItem);
+      }
+
+      switchChat(fullRoomName);
     }
 
     function joinGlobal() {
@@ -739,7 +80,6 @@
       };
 
       socket.emit('send-message', messageData);
-      renderMessage(messageData, true);
       input.value = '';
     }
 
@@ -756,7 +96,6 @@
           type: 'image'
         };
         socket.emit('send-message', messageData);
-        renderMessage(messageData, true);
       };
       reader.readAsDataURL(file);
     }
@@ -765,9 +104,11 @@
       if (e.key === 'Enter') sendMessage();
     }
 
-    function renderMessage(data, isOutgoing = false) {
+    function renderMessage(data) {
       const area = document.getElementById('messages-area');
       const msgDiv = document.createElement('div');
+
+      const isOutgoing = (data.sender === currentUser);
       msgDiv.className = `msg ${isOutgoing ? 'outgoing' : 'incoming'}`;
 
       let content = `<span class="sender">${data.sender}</span>`;
@@ -782,17 +123,21 @@
       area.scrollTop = area.scrollHeight;
     }
 
+    // Handles incoming messages for the active room
     socket.on('receive-message', (data) => {
-      if (data.sender !== currentUser && data.room === activeRoom) {
-        renderMessage(data, false);
+      if (data.room === activeRoom) {
+        renderMessage(data);
       }
     });
 
-    socket.on('load-global-history', (history) => {
-      document.getElementById('messages-area').innerHTML = '';
-      history.forEach(msg => {
-        renderMessage(msg, msg.sender === currentUser);
-      });
+    // Loads history when entering a room
+    socket.on('load-room-history', (payload) => {
+      if (payload.room === activeRoom) {
+        document.getElementById('messages-area').innerHTML = '';
+        payload.history.forEach(msg => {
+          renderMessage(msg);
+        });
+      }
     });
 
     socket.on('online-users', (data) => {
@@ -819,5 +164,3 @@
       document.getElementById('video-modal').classList.add('hidden');
     }
   </script>
-</body>
-</html>
