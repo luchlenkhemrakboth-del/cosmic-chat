@@ -9,8 +9,13 @@ const io = new Server(server, {
   maxHttpBufferSize: 1e7 // Supports images up to 10MB
 });
 
-// Serve static frontend files
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files directly from root directory
+app.use(express.static(__dirname));
+
+// Serve index.html on root access
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // In-memory data store
 const globalMessageStore = [];
@@ -34,10 +39,10 @@ io.on('connection', (socket) => {
     socket.username = username;
     activeUsers.set(socket.id, username);
 
-    // Send history to user
+    // Send chat history to user
     socket.emit('load-global-history', globalMessageStore);
 
-    // Broadcast updated online count
+    // Broadcast updated online user count
     broadcastOnlineUsers();
   });
 
@@ -49,7 +54,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle message broadcasting
+  // Handle message broadcasting across all devices
   socket.on('send-message', (data) => {
     const targetRoom = data.room || 'Global Server';
     
@@ -61,7 +66,7 @@ io.on('connection', (socket) => {
       if (globalMessageStore.length > 200) globalMessageStore.shift(); // Keep last 200 messages
     }
     
-    // Broadcast to all other sockets in the target room
+    // Broadcast message to everyone else in the room
     socket.to(targetRoom).emit('receive-message', data);
   });
 
