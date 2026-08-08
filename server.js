@@ -6,38 +6,66 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  maxHttpBufferSize: 1e7 // Supports image transfers up to 10MB
+  maxHttpBufferSize: 1e7 // Supports images up to 10MB
 });
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Global Server Message Memory (Saves messages in memory)
+// In-memory data store
 const globalMessageStore = [];
+const activeUsers = new Map(); // Tracks socket.id -> username
+
+function broadcastOnlineUsers() {
+  const count = activeUsers.size;
+  const users = Array.from(activeUsers.values());
+  io.emit('online-users', { count, users });
+}
 
 io.on('connection', (socket) => {
   console.log('⚡ User connected:', socket.id);
 
-  // Send historical global messages to newly connected user
-  socket.emit('load-global-history', globalMessageStore);
+  // Auto-join Global Server upon socket connection
+  socket.join('Global Server');
 
-  // Handle joining rooms
+  // Handle user login
+  socket.on('user-joined', (data) => {
+    const username = typeof data === 'object' ? data.username : data;
+    socket.username = username;
+    activeUsers.set(socket.id, username);
+
+    // Send history to user
+    socket.emit('load-global-history', globalMessageStore);
+
+    // Broadcast updated online count
+    broadcastOnlineUsers();
+  });
+
+  // Handle joining specific rooms
   socket.on('join-room', (roomName) => {
     socket.join(roomName);
+    if (roomName === 'Global Server') {
+      socket.emit('load-global-history', globalMessageStore);
+    }
   });
 
   // Handle message broadcasting
   socket.on('send-message', (data) => {
-    if (data.room === 'Global Server') {
-      globalMessageStore.push(data); // Save in global memory
-      if (globalMessageStore.length > 200) globalMessageStore.shift(); // Keep last 200
+    const targetRoom = data.room || 'Global Server';
+    
+    // Ensure socket is joined to room
+    socket.join(targetRoom);
+
+    if (targetRoom === 'Global Server') {
+      globalMessageStore.push(data);
+      if (globalMessageStore.length > 200) globalMessageStore.shift(); // Keep last 200 messages
     }
     
-    // Broadcast to others in the room
-    socket.to(data.room).emit('receive-message', data);
+    // Broadcast to all other sockets in the target room
+    socket.to(targetRoom).emit('receive-message', data);
   });
 
-  // WebRTC Signaling for Video Calling
+  // WebRTC Video Calling Signaling
   socket.on('call-user', (data) => {
     io.to(data.userToCall).emit('call-incoming', { signal: data.signalData, from: data.from });
   });
@@ -46,8 +74,11 @@ io.on('connection', (socket) => {
     io.to(data.to).emit('call-accepted', data.signal);
   });
 
+  // Handle disconnection
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+    activeUsers.delete(socket.id);
+    broadcastOnlineUsers();
   });
 });
 
